@@ -126,6 +126,16 @@ def reveal(dis,field,i,j):
     return dis
     
 
+def check_input(a):
+    try:
+        return int(a)
+    except ValueError:
+        return a
+
+def check_values(a):
+    return a>0 and a < 10 
+
+
 #Prints tables
 
 def printTables():
@@ -166,15 +176,30 @@ if __name__ == '__main__':
 
 
     while True:
-        
-        
-
-        try:
+        message = ''
+        values = False
+        while values == False:
+            print(message)
             r = input("Enter a row number or 'm' to mark a cell : ")
-            r = int(r)
-            c = input("Enter column : ")
-            c = int(c)
+            if type(check_input(r)) == int:
+                c = input("Enter column : ")
+                if type(check_input(c))  == int:
+                    r = int(r)
+                    c = int(c)
+                    choice = 1
+                    if  check_values(r) and check_values(c):
+                        values = True
+                    else:
+                        message = "Values are out of range"                   
+            elif type(check_input(r)) == str and r == 'm':
+                    choice = 2
+                    values = True
+                    
+
             
+        
+        if choice == 1:
+
             if field[r][c] == -1 :
                 print ("******************************")
                 print ("**********  BOOM  ************")
@@ -210,15 +235,27 @@ if __name__ == '__main__':
                             undis[i][j] = 'B'
                 printTables()
                 break
-        except ValueError:
-            if (r == 'm'):
+        elif choice == 2:
+            values = False
+           
+            while values == False:
+                print (message)
                 r = input("Enter a row for marking : ")
-                c = input("Enter a column for marking : ")
-                
-                undis[int(r)][int(c)] = 'm'
-                printTables()
+                if type(check_input(r)) == int:
+                    r = int(r)
+                    c = input("Enter a column for marking : ")
+                    if type(check_input(c)) == int:
+                        c = int(c)
+                        values = check_values(c) and check_values(r)
+                        if values == False:
+                            message = 'Values are out of range'
+                        else:
+                            message = ''
+            undis[r][c] = 'm'
+            printTables()
 
-        
+
+    
         
 
         #print (field[r][c])
