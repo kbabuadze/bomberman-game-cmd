@@ -5,13 +5,13 @@ from random import randint
 #Populates array with zeroes
 def populate(x):
     w, h = x,x
-    Matrix = [[0 for i in range(w)] for j in range(h)] 
+    Matrix = [[0 for i in range(w)] for j in range(h)]
     return Matrix
 
 #Populates array with Xs
 def populateDis(x):
     w, h = x,x
-    Matrix = [['x' for i in range(w)] for j in range(h)] 
+    Matrix = [['x' for i in range(w)] for j in range(h)]
     return Matrix
 
 #Plants bombs
@@ -42,11 +42,11 @@ def plantBomb(field):
 def enumField(field):
     for i in range(1,10):
         for j in range(1,10):
-            if field[i][j] == -1:  
+            if field[i][j] == -1:
                 #top
                 if field[i-1][j] != -1:
                     field[i-1][j] += 1
-                
+
                 #top left
                 if field[i-1][j-1] != -1:
                     field[i-1][j-1] += 1
@@ -58,7 +58,7 @@ def enumField(field):
                 #bottom left
                 if field[i+1][j-1] != -1:
                     field[i+1][j-1] += 1
-                
+
                 #left
                 if field[i][j-1] != -1:
                     field[i][j-1] += 1
@@ -72,18 +72,18 @@ def enumField(field):
                 if field[i+1][j] != -1:
                     field[i+1][j] += 1
 
-                #bottom right 
+                #bottom right
                 if field[i+1][j+1] != -1:
                     field[i+1][j+1] += 1
     return field
 
 
-#Reveals cells 
+#Reveals cells
 
 def reveal(dis,field,i,j):
     if field[i][j] == 0:
         dis[i][j] = field[i][j]
-        
+
         #top
         if  i > 1 and dis[i-1][j] == 'x':
             dis[i-1][j] = field[i-1][j]
@@ -96,7 +96,7 @@ def reveal(dis,field,i,j):
         if i > 1 and j < 9 and dis[i-1][j+1] == 'x':
             dis[i-1][j+1] = field[i-1][j+1]
             reveal(dis,field,i-1,j+1)
-        
+
         #left
         if j >1 and dis[i][j-1] == 'x':
             dis[i][j-1] = field[i][j-1]
@@ -111,20 +111,20 @@ def reveal(dis,field,i,j):
         if i < 9 and dis[i+1][j] == 'x':
             dis[i+1][j] = field[i+1][j]
             reveal(dis,field,i+1,j)
-        #bottom right 
+        #bottom right
         if i < 9 and j < 9 and dis[i+1][j+1] == 'x':
             dis[i+1][j+1] = field[i+1][j+1]
             reveal(dis,field,i+1,j+1)
-        
-        #bottom left 
+
+        #bottom left
         if i < 9 and j >1 and dis[i+1][j-1] == 'x':
             dis[i+1][j-1] = field[i+1][j-1]
             reveal(dis,field,i+1,j-1)
     elif field[i][j] > 0:
            dis[i][j] = field[i][j]
-    
+
     return dis
-    
+
 
 def check_input(a):
     try:
@@ -133,7 +133,7 @@ def check_input(a):
         return a
 
 def check_values(a):
-    return a>0 and a < 10 
+    return a>0 and a < 10
 
 
 #Prints tables
@@ -145,15 +145,19 @@ def printTables():
     #     print ("")
 
     # print ("====================================")
-
+    sys.stdout.write("   ")
     for i in range(1,len(field)-1):
+        sys.stdout.write("{:^3}".format(i))
+    sys.stdout.write("\n")
+    for i in range(1,len(field)-1):
+        sys.stdout.write("{:^3}".format(i))
         for j in range(1,len(field)-1):
             sys.stdout.write("{:^3}".format(dis[i][j]))
         sys.stdout.write ("\n")
-    
+
 
 if __name__ == '__main__':
-    
+
 
     field = populate(11)
 
@@ -190,24 +194,24 @@ if __name__ == '__main__':
                     if  check_values(r) and check_values(c):
                         values = True
                     else:
-                        message = "Values are out of range"                   
+                        message = "Values are out of range"
             elif type(check_input(r)) == str and r == 'm':
                     choice = 2
                     values = True
-                    
 
-            
-        
+
+
+
         if choice == 1:
 
             if field[r][c] == -1 :
                 print ("******************************")
                 print ("**********  BOOM  ************")
                 print ("******************************")
-                print ("##YOU HAVE TREADED ON A BOMB##") 
+                print ("##YOU HAVE TREADED ON A BOMB##")
                 break
 
-            
+
             undis = reveal(dis,field,r,c)
             count = 0
             for n in range(1,len(undis)):
@@ -217,9 +221,9 @@ if __name__ == '__main__':
                     if undis[n][m] == 'm':
                         count += 1
 
-            
-            
-            
+
+
+
 
             print(count)
 
@@ -237,7 +241,7 @@ if __name__ == '__main__':
                 break
         elif choice == 2:
             values = False
-           
+
             while values == False:
                 print (message)
                 r = input("Enter a row for marking : ")
@@ -255,8 +259,8 @@ if __name__ == '__main__':
             printTables()
 
 
-    
-        
+
+
 
         #print (field[r][c])
         #print(undis)
