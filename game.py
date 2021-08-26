@@ -1,266 +1,163 @@
-import sys
+
 from random import randint
+from curses import wrapper
+import curses
 
 
-#Populates array with zeroes
-def populate(x):
-    w, h = x,x
-    Matrix = [[0 for i in range(w)] for j in range(h)]
-    return Matrix
+class Board:
+    def __init__(self,width,bombs: int,) -> None:
+        self.width = width
+        self.bombs = bombs
+        self.marks_counter = 0
+        self.bombs_init = bombs
+        self.game_status = "undefined"
 
-#Populates array with Xs
-def populateDis(x):
-    w, h = x,x
-    Matrix = [['x' for i in range(w)] for j in range(h)]
-    return Matrix
+        if bombs > (width**2)-1:
+            raise ValueError("Number of bombs should be less then the number of cells")
 
-#Plants bombs
-def plantBomb(field):
-    i = randint(1,9)
-    j = randint(1,9)
-    if field[i][j] == 0:
-        field[i][j] = -1
-        return field
-    else:
-        plantBomb(field)
+        self.board = [[[0,False] for _ in range(width)] for _ in range(width)]
+        self.marks = [[False for _ in range(width)] for _ in range(width)]
+        self.plant_bombs()
 
+    # enumberate cells around bombs
+    def enumerate_cell(self,x,y:int)-> None:
+        for i in [-1,0,1]:
+            for j in [-1,0,1]:
+                if  x+i >= 0 and y+j >= 0 and x+i < self.width and y+j < self.width and self.board[x+i][y+j][0] != -1:
+                    self.board[x+i][y+j][0] += 1
 
-#left         [i-1][j]
-#top left     [i-1][j-1]
-#bottom left [i-1][j+1]
+    # pant bombs randomly
+    def plant_bombs(self):
+        count = 0
+        while count < self.bombs:
+            i = randint(0,self.width-1)
+            j = randint(0,self.width-1)
 
+            if self.board[i][j][0] != -1:
+                self.board[i][j][0] = -1
+                count += 1
+        
+        for i in range(self.width):
+            for j in range(self.width):
+                if self.board[i][j][0] == -1:
+                    self.enumerate_cell(i,j)
 
-#top          [i][j-1]
-#bottom       [i][j+1]
+    # mark cell
+    def handle_mark(self,x,y:int):
+        if not self.marks[x][y]:
+            self.marks_counter += 1
+            self.marks[x][y] = True
+        else:
+            self.marks_counter -= 1
+            self.marks[x][y] = False
+        
+        if self.board[x][y][0] == -1 and self.marks[x][y]:
+            self.bombs-=1
+        
+        if self.bombs == 0 and self.marks_counter == self.bombs_init:
+            self.game_status = "won"
+            self.reveal_all()
 
-#top right    [i+1][j-1]
-#right        [i+1][j]
-#bottom right [i+1][j+1]
+    # handle cell opening operation
+    def handle_space(self,x,y: int):
+        if self.board[x][y][0] != -1:
+            self.reveal_part(x,y)
+            return
 
-#Enumerates cells around the bombs
+        self.reveal_all()
+        self.game_status = "lost"
+        
 
-def enumField(field):
-    for i in range(1,10):
-        for j in range(1,10):
-            if field[i][j] == -1:
-                #top
-                if field[i-1][j] != -1:
-                    field[i-1][j] += 1
+    # reveal all the cells, happens once per game
+    def reveal_all(self):
+        for r in range(len(self.board)):
+            for c in range(len(self.board)):
+                self.board[r][c][1] = True
+    
+    # when user clicks empty cell all the neighbours
+    # and their neighbours without a bomb are revealed
+    # recursive solution
+    def reveal_part(self,x,y: int)-> None:
+        if x < 0 or x > self.width-1 or y < 0 or y > self.width-1 or self.board[x][y][1] == True or self.board[x][y][0] == -1:
+            return
 
-                #top left
-                if field[i-1][j-1] != -1:
-                    field[i-1][j-1] += 1
+        if self.board[x][y][0] > 0:
+            self.board[x][y][1] = True
+            return
 
-                #top right
-                if field[i-1][j+1] != -1:
-                    field[i-1][j+1] += 1
+        self.board[x][y][1] = True
+        for i in [-1,0,1]:
+            for j in [-1,0,1]:
+                self.reveal_part(x+i,y+j)
 
-                #bottom left
-                if field[i+1][j-1] != -1:
-                    field[i+1][j-1] += 1
+def main(stdscr):
 
-                #left
-                if field[i][j-1] != -1:
-                    field[i][j-1] += 1
+    curses.echo()
 
+    # Clear screen
+    stdscr = curses.initscr()
 
-                #rigt
-                if field[i][j+1] != -1:
-                    field[i][j+1] += 1
+    stdscr.clear()
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
 
-                #bottom
-                if field[i+1][j] != -1:
-                    field[i+1][j] += 1
+    stdscr.addstr("Please enter the board width:")
+    board_width = int(stdscr.getstr(0,29, 1))
 
-                #bottom right
-                if field[i+1][j+1] != -1:
-                    field[i+1][j+1] += 1
-    return field
+    stdscr.addstr("Please enter the number of bombs:")
+    bombs_num = int(stdscr.getstr(1,33, 2))
+    
+    stdscr.addstr("\n\n")
+    stdscr.addstr("Please hit SPACE BAR to open the cell and hit \"m\"-key to mark the cell with a bomb\n")
+    stdscr.addstr("Mark all bombs to win!\n") 
+    stdscr.addstr("Hit any key to start!\n") 
 
+    b = Board(board_width,bombs_num)
 
-#Reveals cells
-
-def reveal(dis,field,i,j):
-    if field[i][j] == 0:
-        dis[i][j] = field[i][j]
-
-        #top
-        if  i > 1 and dis[i-1][j] == 'x':
-            dis[i-1][j] = field[i-1][j]
-            reveal(dis,field,i-1,j)
-        #top left
-        if  i > 1 and j > 1 and dis[i-1][j-1] == 'x':
-            dis[i-1][j-1] = field[i-1][j-1]
-            reveal(dis,field,i-1,j-1)
-        #top right
-        if i > 1 and j < 9 and dis[i-1][j+1] == 'x':
-            dis[i-1][j+1] = field[i-1][j+1]
-            reveal(dis,field,i-1,j+1)
-
-        #left
-        if j >1 and dis[i][j-1] == 'x':
-            dis[i][j-1] = field[i][j-1]
-            reveal(dis,field,i,j-1)
-
-        #rigt
-        if j < 9 and dis[i][j+1] == 'x':
-            dis[i][j+1]  = field[i][j+1]
-            reveal(dis,field,i,j+1)
-
-        #bottom
-        if i < 9 and dis[i+1][j] == 'x':
-            dis[i+1][j] = field[i+1][j]
-            reveal(dis,field,i+1,j)
-        #bottom right
-        if i < 9 and j < 9 and dis[i+1][j+1] == 'x':
-            dis[i+1][j+1] = field[i+1][j+1]
-            reveal(dis,field,i+1,j+1)
-
-        #bottom left
-        if i < 9 and j >1 and dis[i+1][j-1] == 'x':
-            dis[i+1][j-1] = field[i+1][j-1]
-            reveal(dis,field,i+1,j-1)
-    elif field[i][j] > 0:
-           dis[i][j] = field[i][j]
-
-    return dis
-
-
-def check_input(a):
-    try:
-        return int(a)
-    except ValueError:
-        return a
-
-def check_values(a):
-    return a>0 and a < 10
-
-
-#Prints tables
-
-def printTables():
-    # for i in range(1,len(field)-1):
-    #     for j in range(1,len(field)-1):
-    #         print("{:^3}".format(field[i][j]),end = '')
-    #     print ("")
-
-    # print ("====================================")
-    sys.stdout.write("   ")
-    for i in range(1,len(field)-1):
-        sys.stdout.write("{:^3}".format(i))
-    sys.stdout.write("\n")
-    for i in range(1,len(field)-1):
-        sys.stdout.write("{:^3}".format(i))
-        for j in range(1,len(field)-1):
-            sys.stdout.write("{:^3}".format(dis[i][j]))
-        sys.stdout.write ("\n")
-
-
-if __name__ == '__main__':
-
-
-    field = populate(11)
-
-
-
-    for i in range(5):
-        plantBomb(field)
-
-
-    field = enumField(field)
-
-    dis = populateDis(10)
-    undis = dis
-    for i in range(1,len(field)-1):
-        for j in range(1,len(field)-1):
-            dis[i][j] = 'x'
-
-    printTables()
-
-
+    curr_x = 0 
+    curr_y = 0
 
     while True:
-        message = ''
-        values = False
-        while values == False:
-            print(message)
-            r = input("Enter a row number or 'm' to mark a cell : ")
-            if type(check_input(r)) == int:
-                c = input("Enter column : ")
-                if type(check_input(c))  == int:
-                    r = int(r)
-                    c = int(c)
-                    choice = 1
-                    if  check_values(r) and check_values(c):
-                        values = True
-                    else:
-                        message = "Values are out of range"
-            elif type(check_input(r)) == str and r == 'm':
-                    choice = 2
-                    values = True
+        k = stdscr.getch()
+        if b.game_status != "undefined":
+            exit()
+        stdscr.clear()
 
+        if k == 260 and curr_y > 0:
+            curr_y -= 1
 
+        if k == 261 and curr_y < board_width-1:
+            curr_y += 1
 
+        if k == 259 and curr_x > 0:
+            curr_x-= 1
 
-        if choice == 1:
+        if k == 258 and curr_x < board_width-1:
+            curr_x += 1
 
-            if field[r][c] == -1 :
-                print ("******************************")
-                print ("**********  BOOM  ************")
-                print ("******************************")
-                print ("##YOU HAVE TREADED ON A BOMB##")
-                break
+        if k == 32:
+            b.handle_space(curr_x,curr_y)
+        
+        if k == 109:
+            b.handle_mark(curr_x,curr_y)
+ 
+        for i,r in enumerate(b.board):
+            for j,c in enumerate(r):
+                display = c[0]
+                if c[1] == 0:
+                    display = "x"
+                if b.marks[i][j]:
+                    display = "m"
+                if j == curr_y and i == curr_x:
+                    stdscr.addstr("{:^3}".format(str(display)),curses.color_pair(1))
+                else:
+                    stdscr.addstr("{:^3}".format(str(display)))
+            stdscr.addstr('\n')
+        if b.game_status == "lost":
+            stdscr.addstr("{:^3}\n".format("You lost!"),curses.A_BOLD)
+        
+        if b.game_status == "won":
+            stdscr.addstr("{:^3}\n".format("You won!"),curses.A_BOLD)
 
+        stdscr.refresh()
 
-            undis = reveal(dis,field,r,c)
-            count = 0
-            for n in range(1,len(undis)):
-                for m in range(1,len(undis)):
-                    if undis[n][m] == 'x':
-                        count += 1
-                    if undis[n][m] == 'm':
-                        count += 1
-
-
-
-
-
-            print(count)
-
-            printTables()
-
-            if count == 5 :
-                print ("******************************")
-                print ("******   YOU WON !!!  ********")
-                print ("******************************")
-                for i in range(1,len(undis)):
-                    for j in range(1,len(undis)):
-                        if undis[i][j] == 'x' or undis[i][j] == 'm':
-                            undis[i][j] = 'B'
-                printTables()
-                break
-        elif choice == 2:
-            values = False
-
-            while values == False:
-                print (message)
-                r = input("Enter a row for marking : ")
-                if type(check_input(r)) == int:
-                    r = int(r)
-                    c = input("Enter a column for marking : ")
-                    if type(check_input(c)) == int:
-                        c = int(c)
-                        values = check_values(c) and check_values(r)
-                        if values == False:
-                            message = 'Values are out of range'
-                        else:
-                            message = ''
-            undis[r][c] = 'm'
-            printTables()
-
-
-
-
-
-        #print (field[r][c])
-        #print(undis)
+wrapper(main)()
